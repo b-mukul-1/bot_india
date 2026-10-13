@@ -22,12 +22,57 @@ from backend.app.store.db import DatabaseManager
 from backend.app.export.csv_export import export_trades_to_csv_bytes, export_trade_events_to_csv_bytes
 from backend.app.execution.order_manager import OrderManager
 
+import os
+import threading
+import time
+import logging
+import httpx
+from contextlib import asynccontextmanager
+from backend.app.worker import TradingWorker
+
+logger = logging.getLogger("apex_api")
 settings = get_settings()
+
+worker_instance = None
+worker_thread = None
+
+def _self_ping_loop(target_url: str):
+    logger.info(f"[KEEP-ALIVE] Started self-ping keepalive targeting {target_url} every 10 minutes")
+    while True:
+        time.sleep(600)  # 10 minutes
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                client.get(f"{target_url.rstrip('/')}/ping")
+        except Exception as e:
+            logger.warning(f"[KEEP-ALIVE] Keepalive ping failed: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global worker_instance, worker_thread
+    # 1. Run trading worker inside background daemon thread
+    run_worker = os.environ.get("RUN_WORKER_THREAD", "true").lower() in ("true", "1")
+    if run_worker:
+        worker_instance = TradingWorker()
+        worker_thread = threading.Thread(target=worker_instance.run, daemon=True, name="TradingWorkerThread")
+        worker_thread.start()
+        logger.info("[LIFESPAN] Autonomous TradingWorker started in background daemon thread")
+
+    # 2. Self-ping keepalive if running on free Render instance
+    ping_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL")
+    if ping_url:
+        ping_thread = threading.Thread(target=_self_ping_loop, args=(ping_url,), daemon=True, name="KeepAliveThread")
+        ping_thread.start()
+
+    yield
+
+    if worker_instance:
+        worker_instance.running = False
 
 app = FastAPI(
     title="APEX-IN F&O Paper Trading Engine",
     version="1.0.0",
     description="Nifty / Sensex F&O Paper Trading Bot on MegaBull simulator",
+    lifespan=lifespan,
 )
 
 # CORS Middleware locked to DASHBOARD_ORIGIN
@@ -61,7 +106,15 @@ def verify_auth(x_shared_secret: Optional[str] = Header(None)):
     if x_shared_secret != settings.API_SHARED_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized: invalid X-Shared-Secret")
 
-# ----------------- Health & Status Endpoints -----------------
+# ----------------- Health, Ping & Status Endpoints -----------------
+
+@app.get("/ping")
+def ping():
+    return {
+        "status": "pong",
+        "time": datetime.now(timezone.utc).isoformat(),
+        "worker_running": worker_instance.running if worker_instance else False,
+    }
 
 @app.get("/health")
 def health_check():

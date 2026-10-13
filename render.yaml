@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: apex-in-backend
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /ping
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: TZ
+        value: Asia/Kolkata
+      - key: PAPER_MODE_ONLY
+        value: "true"
+      - key: RUN_WORKER_THREAD
+        value: "true"
+      - key: MEGABULL_API_KEY
+        sync: false
+      - key: API_SHARED_SECRET
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: apex-in-db
+          property: connectionString
+
+databases:
+  - name: apex-in-db
+    plan: free
