@@ -32,7 +32,7 @@ class StrategySignal:
     hedge_price: Optional[float] = None
 
 class SleeveF:
-    def __init__(self, risk_per_trade_inr: float = 3000.0):
+    def __init__(self, risk_per_trade_inr: float = 8000.0):
         self.strategy_id = "SLEEVE_F_ORB_TREND"
         self.risk_per_trade_inr = risk_per_trade_inr
 

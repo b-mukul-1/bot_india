@@ -9,7 +9,7 @@ from backend.app.instruments import InstrumentContract
 from backend.app.strategies.sleeve_f import StrategySignal
 
 class SleeveOBuy:
-    def __init__(self, max_premium_risk_inr: float = 3500.0):
+    def __init__(self, max_premium_risk_inr: float = 12000.0):
         self.strategy_id = "SLEEVE_O_BUY_CONVEX"
         self.max_premium_risk_inr = max_premium_risk_inr
 
@@ -38,9 +38,9 @@ class SleeveOBuy:
         if premium_outlay > self.max_premium_risk_inr:
             return None
 
-        # Hard stop at 35% loss of premium; target at 2x profit (+70% of premium)
+        # Hard stop at 35% loss of premium; target at 2x profit (+100% gain on premium for convex runner)
         stop_price = round(premium * 0.65, 2)
-        target_price = round(premium * 1.70, 2)
+        target_price = round(premium * 2.00, 2)
         risk_inr = round((premium - stop_price) * lot_size, 2)
         expected_move = round((target_price - premium) * lot_size, 2)
 

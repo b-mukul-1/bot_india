@@ -13,7 +13,7 @@ import time
 import signal
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from backend.app.config import get_settings
 from backend.app.calendar import MarketCalendar
@@ -78,6 +78,13 @@ class TradingWorker:
         self.sleeve_o_buy = SleeveOBuy()
         self.sleeve_o_spread = SleeveOSpread()
         self.combiner = StrategyCombiner(self.charges)
+
+        # In-memory session tracking for indicators & ORB (NIFTY & BANKNIFTY)
+        self.price_history: Dict[str, List[float]] = {"NIFTY": [], "BANKNIFTY": []}
+        self.session_high: Dict[str, float] = {"NIFTY": 0.0, "BANKNIFTY": 0.0}
+        self.session_low: Dict[str, float] = {"NIFTY": 999999.0, "BANKNIFTY": 999999.0}
+        self.orb_high: Dict[str, float] = {"NIFTY": 0.0, "BANKNIFTY": 0.0}
+        self.orb_low: Dict[str, float] = {"NIFTY": 999999.0, "BANKNIFTY": 999999.0}
 
         # Signal Handlers
         signal.signal(signal.SIGINT, self._handle_shutdown)
@@ -148,39 +155,169 @@ class TradingWorker:
         self.emit_heartbeat(phase)
         time.sleep(2.0) # Main loop polling interval (respects <= 2 req/sec)
 
+    @staticmethod
+    def _calc_ema(prices: List[float], period: int) -> float:
+        if not prices:
+            return 0.0
+        if len(prices) < period:
+            return sum(prices) / len(prices)
+        k = 2.0 / (period + 1)
+        ema = prices[0]
+        for p in prices[1:]:
+            ema = (p * k) + (ema * (1.0 - k))
+        return round(ema, 2)
+
+    @staticmethod
+    def _calc_atr(prices: List[float], period: int = 14) -> float:
+        if len(prices) < 2:
+            return 20.0
+        diffs = [abs(prices[i] - prices[i - 1]) for i in range(1, len(prices))]
+        recent = diffs[-period:]
+        return round(sum(recent) / len(recent), 2) if recent else 20.0
+
     def _execute_trading_pipeline(self):
-        # Fetch Nifty Index Spot Quote
-        nifty_spot_contract = self.resolver.get_spot("NIFTY")
-        if not nifty_spot_contract:
-            return
-
-        nifty_quote = self.provider.get_quote(
-            nifty_spot_contract.instrument_token, nifty_spot_contract.trading_symbol
-        )
-        if not nifty_quote:
-            return
-
-        spot_price = nifty_quote.ltp
-
-        # Check Active Trades for Stop Loss / Target Hit
+        # 1. Check Active Trades for Stop Loss / Target Hit
         for trade_id in list(self.order_manager.active_trades.keys()):
             trade = self.order_manager.active_trades[trade_id]
             q = self.provider.get_quote(trade.instrument_token, trade.tradingsymbol)
             if not q:
                 continue
 
-            # Long Stop / Target
+            # Long Position Stop / Target Hit
             if trade.side == "BUY":
                 if trade.stop_price and q.ltp <= float(trade.stop_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP")
+                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP_LOSS")
                 elif trade.target_price and q.ltp >= float(trade.target_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET")
-            # Short Stop / Target
+                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET_HIT")
+            # Short Position Stop / Target Hit
             elif trade.side == "SELL":
                 if trade.stop_price and q.ltp >= float(trade.stop_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP")
+                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP_LOSS")
                 elif trade.target_price and q.ltp <= float(trade.target_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET")
+                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET_HIT")
+
+        # 2. Concurrency check: max 3 open positions simultaneously
+        if len(self.order_manager.active_trades) >= 3 or self.sentinel.is_halted:
+            return
+
+        # 3. Evaluate Signals across NIFTY and BANKNIFTY
+        target_indices = ["NIFTY", "BANKNIFTY"]
+        for underlying in target_indices:
+            if len(self.order_manager.active_trades) >= 3:
+                break
+
+            spot_contract = self.resolver.get_spot(underlying)
+            if not spot_contract:
+                continue
+
+            spot_quote = self.provider.get_quote(
+                spot_contract.instrument_token, spot_contract.trading_symbol
+            )
+            if not spot_quote or spot_quote.ltp <= 0:
+                continue
+
+            spot_price = spot_quote.ltp
+
+            # Maintain in-memory tick history (last 100 ticks)
+            hist = self.price_history.setdefault(underlying, [])
+            hist.append(spot_price)
+            if len(hist) > 100:
+                hist.pop(0)
+
+            # Update session High & Low
+            if spot_price > self.session_high.get(underlying, 0.0):
+                self.session_high[underlying] = spot_price
+            if spot_price < self.session_low.get(underlying, 999999.0):
+                self.session_low[underlying] = spot_price
+
+            # Establish Opening Range Breakout (ORB) baseline
+            if len(hist) <= 15:
+                self.orb_high[underlying] = max(self.orb_high.get(underlying, spot_price), spot_price)
+                self.orb_low[underlying] = min(self.orb_low.get(underlying, spot_price), spot_price)
+
+            if len(hist) < 5:
+                continue
+
+            ema_20 = self._calc_ema(hist, 20)
+            ema_50 = self._calc_ema(hist, 50)
+            atr = self._calc_atr(hist, 14)
+            donchian_high = max(hist[-15:])
+            donchian_low = min(hist[-15:])
+            orb_hi = self.orb_high.get(underlying, spot_price)
+            orb_lo = self.orb_low.get(underlying, spot_price)
+
+            # Check if an existing trade already targets this underlying
+            underlying_busy = any(
+                t.underlying == underlying for t in self.order_manager.active_trades.values()
+            )
+            if underlying_busy:
+                continue
+
+            candidate_signal = None
+
+            # --- A. SLEEVE O-BUY (Convex ATM Options Momentum) ---
+            atm_options = self.resolver.get_atm_options(underlying, spot_price, n_strikes=2)
+
+            # Bullish Call Momentum Breakout
+            if spot_price >= donchian_high and atm_options.get("CE"):
+                ce_contract = atm_options["CE"][0]
+                q_ce = self.provider.get_quote(ce_contract.instrument_token, ce_contract.trading_symbol)
+                if q_ce and q_ce.ltp >= 25.0:
+                    candidate_signal = self.sleeve_o_buy.evaluate(
+                        contract=ce_contract,
+                        premium=q_ce.ltp,
+                        spot_price=spot_price,
+                        india_vix=14.5,
+                        spot_donchian_high=donchian_high - 1.0,
+                        spot_donchian_low=donchian_low,
+                    )
+
+            # Bearish Put Momentum Breakdown
+            elif spot_price <= donchian_low and atm_options.get("PE"):
+                pe_contract = atm_options["PE"][0]
+                q_pe = self.provider.get_quote(pe_contract.instrument_token, pe_contract.trading_symbol)
+                if q_pe and q_pe.ltp >= 25.0:
+                    candidate_signal = self.sleeve_o_buy.evaluate(
+                        contract=pe_contract,
+                        premium=q_pe.ltp,
+                        spot_price=spot_price,
+                        india_vix=14.5,
+                        spot_donchian_high=donchian_high,
+                        spot_donchian_low=donchian_low + 1.0,
+                    )
+
+            # --- B. SLEEVE F (Futures Trend / ORB) if no option signal ---
+            if not candidate_signal:
+                futures = self.resolver.get_futures(underlying)
+                if futures:
+                    fut_contract = futures[0]
+                    fut_quote = self.provider.get_quote(
+                        fut_contract.instrument_token, fut_contract.trading_symbol
+                    )
+                    if fut_quote and fut_quote.ltp > 0:
+                        candidate_signal = self.sleeve_f.evaluate(
+                            contract=fut_contract,
+                            current_price=fut_quote.ltp,
+                            orb_high=orb_hi,
+                            orb_low=orb_lo,
+                            ema_20=ema_20,
+                            ema_50=ema_50,
+                            adx=24.0,
+                            atr=atr,
+                        )
+
+            # --- C. Cost-Aware Gate & Execution ---
+            if candidate_signal:
+                if self.combiner.cost_aware_gate(candidate_signal):
+                    try:
+                        trade_record = self.order_manager.execute_signal(candidate_signal)
+                        if trade_record:
+                            logger.info(
+                                f"[EXECUTION SUCCESS] Placed {candidate_signal.sleeve} on "
+                                f"{candidate_signal.tradingsymbol} @ Rs {candidate_signal.price}"
+                            )
+                    except Exception as ex:
+                        logger.warning(f"[EXECUTION VETO] Sentinel or engine vetoed signal: {ex}")
 
     def run(self):
         logger.info("=== APEX-IN TRADING WORKER INITIALIZED (PAPER MODE) ===")

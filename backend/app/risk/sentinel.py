@@ -22,15 +22,15 @@ class RiskBreachException(Exception):
 @dataclass
 class RiskConfig:
     initial_capital: float = 500000.0  # Rs 5 Lakhs virtual balance
-    max_trade_risk_pct: float = 0.01   # Max 1.0% per trade (Rs 5,000)
-    max_total_risk_pct: float = 0.03   # Max 3.0% total open risk (Rs 15,000)
-    daily_loss_limit_pct: float = 0.025 # 2.5% daily loss limit (Rs 12,500)
-    weekly_loss_limit_pct: float = 0.06 # 6.0% weekly loss limit (Rs 30,000)
-    max_orders_per_day: int = 40
-    max_orders_per_minute: int = 10
-    max_lots_per_underlying: int = 5
+    max_trade_risk_pct: float = 0.02   # Max 2.0% per trade (Rs 10,000) - upgraded for high conviction
+    max_total_risk_pct: float = 0.05   # Max 5.0% total open risk (Rs 25,000)
+    daily_loss_limit_pct: float = 0.03 # 3.0% daily loss limit (Rs 15,000 circuit breaker)
+    weekly_loss_limit_pct: float = 0.08 # 8.0% weekly loss limit (Rs 40,000)
+    max_orders_per_day: int = 60       # Up to 60 orders/day across Nifty & BankNifty
+    max_orders_per_minute: int = 15
+    max_lots_per_underlying: int = 10  # Up to 10 lots per underlying
     min_option_premium: float = 20.0   # Skip cheap options where Rs 20 brokerage dominates
-    max_quote_age_seconds: float = 5.0 # Stale quote veto threshold
+    max_quote_age_seconds: float = 5.0 # Stale quote veto threshold (5.0s)
 
 class RiskSentinel:
     def __init__(self, config: Optional[RiskConfig] = None):
