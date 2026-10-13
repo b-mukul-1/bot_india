@@ -1,0 +1,76 @@
+# APEX-IN Statutory & Brokerage Fee Schedules for Indian F&O (NSE / BSE)
+# Last verified: 2026-10-13 against NSE, BSE, Finance Act 2024 / 2026 schedules
+# Currency: INR
+
+effective_date: "2026-04-01"
+version: "2026.1"
+
+# Brokerage rates
+brokerage:
+  default_per_order_inr: 20.00
+  cap_pct_of_trade_value: 0.025 # 2.5% max of order turnover if applicable
+  source: "MegaBull / Discount Broker Standard Schedule"
+
+# Securities Transaction Tax (STT) - Post April 1, 2026 Rates
+# Section 98 of Finance (No. 2) Act 2024 / Union Budget 2026
+stt:
+  futures:
+    rate: 0.0005 # 0.05% of traded value (raised from 0.02%)
+    side: "SELL"
+    source: "https://www.nseindia.com/products-services/equity-derivatives-statutory-levies"
+  options:
+    rate: 0.0015 # 0.15% of option premium (raised from 0.10%)
+    side: "SELL"
+    source: "https://www.nseindia.com/products-services/equity-derivatives-statutory-levies"
+  options_exercised:
+    rate: 0.0015 # 0.15% of intrinsic value on settlement
+    side: "EXERCISE"
+    source: "https://www.nseindia.com/products-services/equity-derivatives-statutory-levies"
+
+# Exchange Transaction Charges
+# NSE Circular on Transaction Charges
+exchange_txn:
+  nse:
+    futures_rate: 0.0000173 # 0.00173% of turnover
+    options_rate: 0.0003500 # 0.03500% of premium turnover
+    sides: ["BUY", "SELL"]
+    source: "https://www.nseindia.com/trade/transaction-charges"
+  bse:
+    futures_rate: 0.0000050 # 0.0005% of turnover
+    options_rate: 0.0003250 # 0.0325% of premium turnover
+    sides: ["BUY", "SELL"]
+    source: "https://www.bseindia.com/static/members/TransactionCharges.aspx"
+
+# SEBI Turnover Fee
+sebi_fee:
+  rate_per_crore: 10.00 # Rs 10 per crore = 0.0001% (0.000001 of turnover/premium)
+  rate: 0.0000010
+  sides: ["BUY", "SELL"]
+  source: "https://www.sebi.gov.in"
+
+# Stamp Duty (Indian Stamp Act, unified across states for exchange trades)
+stamp_duty:
+  futures_rate: 0.00002 # 0.002% on BUY side
+  options_rate: 0.00003 # 0.003% on BUY side
+  sides: ["BUY"]
+  source: "https://dor.gov.in/sites/default/files/stamp_duty_rates.pdf"
+
+# Investor Protection Fund Trust (IPFT) Charges
+ipft:
+  nse:
+    futures_rate: 0.0000010 # Rs 10 per crore
+    options_rate: 0.0000050 # Rs 50 per crore of premium
+    sides: ["BUY", "SELL"]
+    source: "https://www.nseindia.com/invest/investor-protection-fund-trust"
+  bse:
+    futures_rate: 0.0000010
+    options_rate: 0.0000050
+    sides: ["BUY", "SELL"]
+    source: "https://www.bseindia.com"
+
+# Goods and Services Tax (GST)
+gst:
+  rate: 0.18 # 18% on (Brokerage + Exchange Txn + SEBI Fee + IPFT)
+  taxable_components: ["brokerage", "exchange_txn", "sebi_fee", "ipft"]
+  sides: ["BUY", "SELL"]
+  source: "Central Goods and Services Tax Act, 2017"

@@ -1,0 +1,2785 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Megabull API Key API",
+    "description": "Public API documentation for endpoints that accept the `api-key` header.\nYou can generate an API key by going to `https://trade.megabull.in`, logging in, and under Profile you can generate an API key.\nKeys expire after 1 month.\n",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.megabull.in",
+      "description": "Megabull Production API"
+    }
+  ],
+  "security": [
+    {
+      "api-key": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "User",
+      "description": "User profile and account"
+    },
+    {
+      "name": "Market Watch",
+      "description": "Market watch and instrument lookup"
+    },
+    {
+      "name": "Order",
+      "description": "Place, modify, list and cancel orders"
+    },
+    {
+      "name": "Position",
+      "description": "Open positions"
+    },
+    {
+      "name": "Holding",
+      "description": "Holdings"
+    },
+    {
+      "name": "Report",
+      "description": "Trading and virtual money reports"
+    }
+  ],
+  "paths": {
+    "/api/order/buysell/{orderId}": {
+      "put": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Modify pending order",
+        "description": "Modifies an existing pending order using the order ID in the path.\nUse the `id` returned from GET /api/order/my, place order, or a previous modify response.\nDo not send `id` in the request body.\n\n**type**: `BUY` or `SELL`\n**duration**: `MIS` (intraday) or `CNC` (delivery)\n**orderType**: `LIMIT`, `MKT`, or `SL`\n- `LIMIT` → provide `price`\n- `MKT` → market order\n- `SL` → provide `triggerPrice`\n\nUse `instrumentToken` from GET /api/marketwatch/instruments.\n",
+        "operationId": "modifyOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "description": "Order ID from GET /api/order/my or from place/modify order response",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 101
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nOrder-specific messages:\n- Script not found!\n- Invalid quantity, Please enter quantity greater than 0\n- Invalid quantity, Please enter quantity based on lot size\n- Invalid quantity, Please enter quantity lesser than 10000\n- Non tradable instrument, Please choose tradable instrument\n- Invalid trigger quantity, Please enter trigger quantity greater than 0\n- Invalid price, Please enter LIMIT price greater than 0\n- Invalid trigger Price, Please enter trigger price greater than current price\n- Invalid trigger Price, Please enter trigger price lesser than current price\n- Your Margin amount exceeded total virtual money...\n- You cannot place order on expired product\n- Sorry your order not found!\n- Sorry your order not in pending state!\n- Sorry your order cannot be cancelled!\n- Market Closed!\n- Order validation failed\n- Order service not ready\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Order modified successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/order/bulk/cancel": {
+      "put": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Bulk cancel orders",
+        "description": "Cancels multiple orders by ID.\nEach array item must be an order `id` received from GET /api/order/my, place order (POST /api/order/buysell), or modify order (PUT /api/order/buysell/{orderId}).\nEach item in the response returns SUCCESS or FAILED with a message.\n",
+        "operationId": "cancelOrderBulk",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id these order ids belong to. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Order IDs to cancel",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "description": "Order ID",
+                  "example": 101
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nOrder-specific messages:\n- Script not found!\n- Invalid quantity, Please enter quantity greater than 0\n- Invalid quantity, Please enter quantity based on lot size\n- Invalid quantity, Please enter quantity lesser than 10000\n- Non tradable instrument, Please choose tradable instrument\n- Invalid trigger quantity, Please enter trigger quantity greater than 0\n- Invalid price, Please enter LIMIT price greater than 0\n- Invalid trigger Price, Please enter trigger price greater than current price\n- Invalid trigger Price, Please enter trigger price lesser than current price\n- Your Margin amount exceeded total virtual money...\n- You cannot place order on expired product\n- Sorry your order not found!\n- Sorry your order not in pending state!\n- Sorry your order cannot be cancelled!\n- Market Closed!\n- Order validation failed\n- Order service not ready\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bulk cancel result per order ID",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderCancelResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Create a room",
+        "description": "Creates a new public or private room. The creator automatically joins as owner.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/leave": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Leave a room",
+        "description": "Squares off open room positions/holdings, cancels pending room orders, and leaves.",
+        "operationId": "leave",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/join": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Join a room",
+        "description": "Public rooms join directly. Private rooms require a valid invite code (the code from the invite email).",
+        "operationId": "join",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/invite": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Invite by email",
+        "description": "Room owner only. Emails a join code — sign-up link if the invited address has no MegaBull account yet, sign-in link otherwise.",
+        "operationId": "invite",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/join-by-code": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Join by ID",
+        "description": "The generic \"Join by ID\" entry point — accepts either a private room's invite code or a public room's share code, so the caller doesn't need to know the room id or which kind of code it is.",
+        "operationId": "joinByCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomJoinByCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/invite/{token}/accept": {
+      "post": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Accept an invite",
+        "description": "Joins the room referenced by a valid invite token.",
+        "operationId": "acceptInvite",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/order/buysell": {
+      "post": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Place buy/sell order",
+        "description": "Places a new order for the authenticated API key user.\n\n**type**: `BUY` or `SELL`\n**duration**: `MIS` (intraday) or `CNC` (delivery)\n**orderType**: `LIMIT`, `MKT`, or `SL`\n- `LIMIT` → provide `price`\n- `MKT` → market order\n- `SL` → provide `triggerPrice`\n\nUse `instrumentToken` from GET /api/marketwatch/instruments.\n",
+        "operationId": "placeOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nOrder-specific messages:\n- Script not found!\n- Invalid quantity, Please enter quantity greater than 0\n- Invalid quantity, Please enter quantity based on lot size\n- Invalid quantity, Please enter quantity lesser than 10000\n- Non tradable instrument, Please choose tradable instrument\n- Invalid trigger quantity, Please enter trigger quantity greater than 0\n- Invalid price, Please enter LIMIT price greater than 0\n- Invalid trigger Price, Please enter trigger price greater than current price\n- Invalid trigger Price, Please enter trigger price lesser than current price\n- Your Margin amount exceeded total virtual money...\n- You cannot place order on expired product\n- Sorry your order not found!\n- Sorry your order not in pending state!\n- Sorry your order cannot be cancelled!\n- Market Closed!\n- Order validation failed\n- Order service not ready\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Order placed successfully. Response `id` can be used for modify or bulk cancel.",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/my": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Get user profile",
+        "description": "Returns profile, virtual money, premium and notification count for the API key user.",
+        "operationId": "getUserView",
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User profile",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Tournament details",
+        "description": "Room configuration plus the caller's membership/wallet if they've joined.",
+        "operationId": "getRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/share": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Public share code",
+        "description": "Share code for a public room — enter it via \"Join by ID\".",
+        "operationId": "getShare",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/leaderboard": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Room leaderboard",
+        "description": "Ranked list of active members by the room's configured winner metric.",
+        "operationId": "getLeaderboard",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/public": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "List public rooms",
+        "description": "Public, currently active rooms — dropdown source for joining a tournament. Sorted trending-first (most members, then most recently created). Supports an optional case-insensitive name search (`q`) plus paging (`page`, 0-based; `size`, default 20, max 100).",
+        "operationId": "getPublicRooms",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search rooms by name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "0-based page index",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size, default 20, max 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/my": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "My tournaments",
+        "description": "Rooms the authenticated user has joined (active and past), completed rooms sorted to the end. Supports an optional case-insensitive name search (`q`) plus paging (`page`, 0-based; `size`, default 20, max 100).",
+        "operationId": "getMyRooms",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search my rooms by name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "0-based page index",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size, default 20, max 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/invite/public/{token}": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Preview an invite",
+        "description": "Unauthenticated preview of an invite code's room/inviter — optional, for a landing page if the code is ever surfaced as a link before login.",
+        "operationId": "previewInvite",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/invite/public/code/{shareCode}": {
+      "get": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Resolve a public share code",
+        "description": "Unauthenticated lookup of a public room's details from its share code, for the share-link landing page before login.",
+        "operationId": "getRoomByShareCode",
+        "parameters": [
+          {
+            "name": "shareCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/report/virtual/{start}/{end}": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Get virtual money report",
+        "description": "Returns virtual fund report between a start and end date (inclusive).\nExample: `/api/report/virtual/2026-05-31/2026-06-19`\n",
+        "operationId": "getVirtualMoneyReport",
+        "parameters": [
+          {
+            "name": "start",
+            "in": "path",
+            "description": "Start date in yyyy-MM-dd format. Example: 2026-05-31",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-05-31"
+          },
+          {
+            "name": "end",
+            "in": "path",
+            "description": "End date in yyyy-MM-dd format. Example: 2026-06-19",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-06-19"
+          },
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to report on. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nReport-specific messages:\n- Data not available for this month, Please try with other month!\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Virtual money report",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/VirtualReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/report/monthly/{month}/{year}": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Get monthly report",
+        "description": "Returns month-wise P&L report for the given month and year.",
+        "operationId": "getReportMonthWise",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "path",
+            "description": "Month number (1–12). Example: 6 for June",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 6
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "description": "Four-digit year. Example: 2026",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "example": 2026
+          },
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to report on. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nReport-specific messages:\n- Data not available for this month, Please try with other month!\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Monthly report",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/report/monthly/day/{date}": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Get day-wise report",
+        "description": "Returns day positions for the given trading date.",
+        "operationId": "getReportDayWise",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "path",
+            "description": "Date in yyyy-MM-dd format. Example: 2026-06-19",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-06-19"
+          },
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to report on. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\nReport-specific messages:\n- Data not available for this month, Please try with other month!\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Day positions report",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayPositionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/position/my": {
+      "get": {
+        "tags": [
+          "Position"
+        ],
+        "summary": "Get my positions",
+        "description": "Returns open positions for the authenticated API key user.",
+        "operationId": "getPositions",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to view. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "List of positions",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PositionResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/order/my": {
+      "get": {
+        "tags": [
+          "Order"
+        ],
+        "summary": "Get my orders",
+        "description": "Returns all orders for the authenticated API key user. Use response `id` values for modify or bulk cancel.",
+        "operationId": "getOrders",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to view. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "List of open and executed orders",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderCollectionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketwatch/my": {
+      "get": {
+        "tags": [
+          "Market Watch"
+        ],
+        "summary": "Get market watch",
+        "description": "Returns the user's market watch list.",
+        "operationId": "getMarketWatch",
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Market watch entries",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MarketWatchResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketwatch/ltp/{instrumentToken}": {
+      "get": {
+        "tags": [
+          "Market Watch"
+        ],
+        "summary": "Get last traded price (LTP)",
+        "description": "Returns the current last traded price for an instrument. Use `instrumentToken` from GET /api/marketwatch/instruments.",
+        "operationId": "getLtp",
+        "parameters": [
+          {
+            "name": "instrumentToken",
+            "in": "path",
+            "description": "Instrument token from GET /api/marketwatch/instruments",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 738561
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Current LTP",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LtpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketwatch/instruments": {
+      "get": {
+        "tags": [
+          "Market Watch"
+        ],
+        "summary": "Download all tradable instruments (CSV)",
+        "description": "Returns the public S3 URL for the instrument CSV with columns `tradingSymbol`, `instrumentName`, `instrumentToken`.\nThe file is refreshed whenever the API server starts.\n\nUse the `instrumentToken` column as the token for GET /api/marketwatch/ltp/{instrumentToken} and POST/PUT /api/order/buysell.\n\nOpen `downloadUrl` in a browser to download the CSV.\nPass `redirect=true` to receive an HTTP 302 redirect to S3 instead (not supported in Swagger Try it out).\n",
+        "operationId": "getAllInstruments",
+        "parameters": [
+          {
+            "name": "redirect",
+            "in": "query",
+            "description": "When true, responds with HTTP 302 redirect to S3 instead of JSON",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "S3 CSV download URL",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentDownloadResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Instrument CSV not available on S3 yet",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "302": {
+            "description": "Redirect to S3 CSV when redirect=true",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/holding/my": {
+      "get": {
+        "tags": [
+          "Holding"
+        ],
+        "summary": "Get my holdings",
+        "description": "Returns holdings for the authenticated API key user.",
+        "operationId": "getHoldings",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "description": "Room id to view. Omit for the default personal workspace.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized. Possible messages:\n- Sorry, Your login credentials appear to be incorrect.\n- JWT token has expired. Please sign in again or refresh your token.\n- Invalid or expired API key\n- Missing api-key header\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. Possible messages:\n- Oops! It looks like something went wrong.\n- Validation errors from request body (@Valid).\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required / access denied. Possible messages:\n- Sorry, Your account needs extra privilege to access this.\n- Upgrade required messages for premium-only features.\n",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "List of holdings",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HoldingResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/badge/{userId}": {
+      "get": {
+        "tags": [
+          "Badge"
+        ],
+        "summary": "A user's badge",
+        "description": "Same shape as /my, for any user — for showing a badge on a profile or leaderboard row.",
+        "operationId": "getBadge",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/badge/my": {
+      "get": {
+        "tags": [
+          "Badge"
+        ],
+        "summary": "My badge",
+        "description": "Current rating, level (1-50), badge tier, global leaderboard rank, progress to the next tier, and career room stats.",
+        "operationId": "getMyBadge",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/badge/my/history": {
+      "get": {
+        "tags": [
+          "Badge"
+        ],
+        "summary": "My badge history",
+        "description": "Rating change log, one entry per room settled, newest first — the source for a rating chart and upgrade/downgrade moments (`changeDirection`). Paged (`page`, 0-based; `size`, default 20, max 100).",
+        "operationId": "getMyHistory",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "0-based page index",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size, default 20, max 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/badge/leaderboard": {
+      "get": {
+        "tags": [
+          "Badge"
+        ],
+        "summary": "Global badge leaderboard",
+        "description": "Top 100 users ranked by rating, highest first — capped there regardless of paging. Paged (`page`, 0-based; `size`, default 20, max 100); a page entirely past rank 100 returns empty.",
+        "operationId": "getLeaderboard_1",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "0-based page index",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size, default 20, max 100",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/room/{roomId}/members/{userId}": {
+      "delete": {
+        "tags": [
+          "Room"
+        ],
+        "summary": "Remove a member",
+        "description": "Room owner only. Force-removes a joined member — squares off their open room positions/holdings and cancels their pending room orders first, same as if they'd left. The owner cannot remove themselves.",
+        "operationId": "removeMember",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "OrderApiOrderType": {
+        "type": "string",
+        "description": "Order type exposed in API documentation",
+        "enum": [
+          "LIMIT",
+          "MKT",
+          "SL"
+        ]
+      },
+      "OrderDuration": {
+        "type": "string",
+        "description": "Order duration",
+        "enum": [
+          "MIS",
+          "CNC"
+        ]
+      },
+      "OrderRequest": {
+        "required": [
+          "duration",
+          "instrumentToken",
+          "orderType",
+          "qty",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "instrumentToken": {
+            "type": "string",
+            "description": "Instrument token from GET /api/marketwatch/instruments",
+            "example": "256265"
+          },
+          "qty": {
+            "type": "integer",
+            "description": "Quantity to trade",
+            "format": "int32",
+            "example": 50
+          },
+          "type": {
+            "$ref": "#/components/schemas/Type"
+          },
+          "duration": {
+            "$ref": "#/components/schemas/OrderDuration"
+          },
+          "orderType": {
+            "$ref": "#/components/schemas/OrderApiOrderType"
+          },
+          "price": {
+            "type": "number",
+            "description": "Limit price. Required when orderType is LIMIT.",
+            "format": "double",
+            "example": 25000.0
+          },
+          "triggerPrice": {
+            "type": "number",
+            "description": "Trigger price. Required when orderType is SL.",
+            "format": "double",
+            "example": 24800.0
+          }
+        },
+        "description": "Order request body for place and modify order APIs.\nDo not send `id` in the request body.\n"
+      },
+      "Type": {
+        "type": "string",
+        "description": "Order side",
+        "enum": [
+          "BUY",
+          "SELL"
+        ]
+      },
+      "OrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instrumentToken": {
+            "type": "string"
+          },
+          "instrumentName": {
+            "type": "string"
+          },
+          "executionType": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          },
+          "msg": {
+            "type": "string"
+          },
+          "createdTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifiedTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "HTTP status name",
+            "example": "BAD_REQUEST"
+          },
+          "error": {
+            "type": "string",
+            "description": "Exception type",
+            "example": "ErrorMsgException"
+          },
+          "message": {
+            "uniqueItems": true,
+            "type": "array",
+            "description": "Human-readable error messages",
+            "items": {
+              "type": "string",
+              "description": "Human-readable error messages"
+            }
+          },
+          "path": {
+            "type": "string",
+            "description": "Request path",
+            "example": "/api/order/buysell"
+          }
+        },
+        "description": "Standard API error response"
+      },
+      "OrderCancelResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "instrumentName": {
+            "type": "string"
+          },
+          "msg": {
+            "type": "string"
+          }
+        }
+      },
+      "RoomCreateRequest": {
+        "required": [
+          "expiryDate",
+          "name",
+          "virtualMoney",
+          "visibility"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE"
+            ]
+          },
+          "virtualMoney": {
+            "maximum": 10000000,
+            "minimum": 1,
+            "type": "number",
+            "format": "double"
+          },
+          "maxMembers": {
+            "maximum": 1000,
+            "minimum": 2,
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiryDate": {
+            "type": "string",
+            "description": "Date the room closes, in yyyy-MM-dd. Closes at 4 PM IST on this date regardless of time of day. Must be today through 31 days out.",
+            "format": "date",
+            "example": "2026-08-15"
+          },
+          "restrictions": {
+            "$ref": "#/components/schemas/RoomRestrictions"
+          },
+          "winnerCriteria": {
+            "$ref": "#/components/schemas/WinnerCriteria"
+          }
+        }
+      },
+      "RoomRestrictions": {
+        "type": "object",
+        "properties": {
+          "segments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "durations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "WinnerCriteria": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "ROI",
+              "PNL",
+              "HIT_RATE",
+              "TRADE_COUNT"
+            ]
+          },
+          "minTrades": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "winnerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tieBreaker": {
+            "type": "string",
+            "enum": [
+              "ROI",
+              "PNL",
+              "HIT_RATE",
+              "TRADE_COUNT"
+            ]
+          }
+        }
+      },
+      "RoomInviteRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "RoomJoinByCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "emailId": {
+            "type": "string"
+          },
+          "virtualMoney": {
+            "type": "number",
+            "format": "double"
+          },
+          "virtualMoneyBlocked": {
+            "type": "number",
+            "format": "double"
+          },
+          "virtualMoneyLeft": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "brokerage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "partner": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notificationCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "premiumType": {
+            "type": "string"
+          },
+          "premiumExpiry": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VirtualReportResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ReportDayList": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pl": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ReportResponse": {
+        "type": "object",
+        "properties": {
+          "plAfterTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "plBeforeTax": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalProfit": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalLoss": {
+            "type": "number",
+            "format": "double"
+          },
+          "brokerage": {
+            "type": "number",
+            "format": "double"
+          },
+          "tax": {
+            "type": "number",
+            "format": "double"
+          },
+          "reportDayList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportDayList"
+            }
+          }
+        }
+      },
+      "DayPositionsResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "pl": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgBuyPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgSellPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "instrumentName": {
+            "type": "string"
+          }
+        }
+      },
+      "PositionResponse": {
+        "type": "object",
+        "properties": {
+          "instrumentToken": {
+            "type": "string"
+          },
+          "instrumentName": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "priceAvg": {
+            "type": "number",
+            "format": "double"
+          },
+          "pl": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgBuyPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgSellPrice": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "OrderCollectionResponse": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderResponse"
+            }
+          },
+          "executed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderResponse"
+            }
+          }
+        }
+      },
+      "MarketWatchResponse": {
+        "type": "object",
+        "properties": {
+          "instrumentToken": {
+            "type": "string"
+          },
+          "tradingSymbol": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "lastPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "expiry": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lotSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tickSize": {
+            "type": "number",
+            "format": "double"
+          },
+          "segment": {
+            "type": "string"
+          },
+          "exchange": {
+            "type": "string"
+          }
+        }
+      },
+      "LtpResponse": {
+        "type": "object",
+        "properties": {
+          "instrumentToken": {
+            "type": "string",
+            "description": "Instrument token, from GET /api/marketwatch/instruments",
+            "example": "738561"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Instrument display name",
+            "example": "RELIANCE"
+          },
+          "exchange": {
+            "type": "string",
+            "description": "Exchange",
+            "example": "NSE"
+          },
+          "ltp": {
+            "type": "number",
+            "description": "Current last traded price",
+            "format": "double",
+            "example": 2945.5
+          }
+        },
+        "description": "Last traded price of an instrument"
+      },
+      "InstrumentDownloadResponse": {
+        "type": "object",
+        "properties": {
+          "downloadUrl": {
+            "type": "string",
+            "description": "Direct download URL for the instrument CSV on S3 (tradingSymbol, instrumentName, instrumentToken)",
+            "example": "https://megabull-open.s3.us-east-1.amazonaws.com/Instrument-dev.csv"
+          }
+        },
+        "description": "Public S3 URL for the instrument CSV download"
+      },
+      "HoldingResponse": {
+        "type": "object",
+        "properties": {
+          "instrumentToken": {
+            "type": "string"
+          },
+          "instrumentName": {
+            "type": "string"
+          },
+          "lotSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "priceAvg": {
+            "type": "number",
+            "format": "double"
+          },
+          "pl": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgBuyPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "avgSellPrice": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "api-key": {
+        "type": "apiKey",
+        "description": "API key issued from apikey_gen table",
+        "name": "api-key",
+        "in": "header"
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "timestamp_utc": "2026-10-13T17:46:52.746452+00:00",
+  "has_api_key": false,
+  "results": {
+    "user_my": {
+      "path": "/api/user/my",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "marketwatch_my": {
+      "path": "/api/marketwatch/my",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "instruments_json": {
+      "path": "/api/marketwatch/instruments",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "instruments_redirect": {
+      "path": "/api/marketwatch/instruments?redirect=true",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "ltp_nifty50": {
+      "path": "/api/marketwatch/ltp/256265",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "ltp_sensex": {
+      "path": "/api/marketwatch/ltp/265",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "positions_my": {
+      "path": "/api/position/my",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "orders_my": {
+      "path": "/api/order/my",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "holdings_my": {
+      "path": "/api/holding/my",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "virtual_report": {
+      "path": "/api/report/virtual/2026-10-01/2026-10-13",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "monthly_report": {
+      "path": "/api/report/monthly/10/2026",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    },
+    "day_report": {
+      "path": "/api/report/monthly/day/2026-10-13",
+      "status_code": 401,
+      "error": "AuthenticationException",
+      "message": [
+        "Missing api-key header"
+      ]
+    }
+  },
+  "s3_csv": {
+    "status_code": 200,
+    "content_length": 255051,
+    "sample_lines": [
+      "\"tradingSymbol\",\"instrumentName\",\"instrumentToken\"",
+      "\"NIFTY 50\",\"NIFTY 50\",\"256265\"",
+      "\"SENSEX\",\"SENSEX\",\"265\"",
+      "\"NIFTY BANK\",\"NIFTY BANK\",\"260105\"",
+      "\"NIFTY FIN SERVICE\",\"NIFTY FIN SERVICE\",\"257801\""
+    ]
+  }
+}
