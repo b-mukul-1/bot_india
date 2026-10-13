@@ -87,6 +87,13 @@ class RiskSentinel:
         self.kill_switch_active = True
         logger.critical(f"[RISK SENTINEL HALT] {reason}")
 
+    def reset_halt(self) -> None:
+        self.is_halted = False
+        self.halt_reason = None
+        self.kill_switch_active = False
+        self.disabled_sleeves.clear()
+        logger.info("[RISK SENTINEL] Halt cleared and Sentinel successfully re-armed.")
+
     def get_sizing_multiplier(self) -> float:
         """Returns 0.5 if in -6% drawdown, 0.0 if halted, else 1.0."""
         if self.is_halted:

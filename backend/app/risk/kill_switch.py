@@ -77,3 +77,14 @@ class KillSwitch:
         # Log to DB
         self.db.set_state("kill_switch_state", summary)
         return summary
+
+    def rearm(self) -> Dict[str, Any]:
+        """Disarms kill switch and resets Sentinel to active armed state."""
+        self.sentinel.reset_halt()
+        summary = {
+            "status": "ARMED",
+            "reason": "RESET_BY_USER",
+        }
+        self.db.set_state("kill_switch_state", summary)
+        logger.info("[KILL SWITCH] Re-armed successfully.")
+        return summary

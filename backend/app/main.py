@@ -317,7 +317,16 @@ def trigger_kill_switch(confirm: str = Query(..., description="Must type HALT to
     if confirm.strip().upper() != "HALT":
         raise HTTPException(status_code=400, detail="Must pass confirm=HALT to execute kill switch")
     result = kill_switch.execute_halt_and_flatten(reason="DASHBOARD_API_TRIGGERED")
+    if worker_instance and hasattr(worker_instance, "sentinel"):
+        worker_instance.sentinel.trigger_halt("Kill switch activated: DASHBOARD_API_TRIGGERED")
     return {"status": "SUCCESS", "details": result}
+
+@app.post("/api/kill-switch/reset")
+def reset_kill_switch_endpoint(auth: None = Depends(verify_auth)):
+    result = kill_switch.rearm()
+    if worker_instance and hasattr(worker_instance, "sentinel"):
+        worker_instance.sentinel.reset_halt()
+    return {"status": "SUCCESS", "message": "Kill switch disarmed and bot re-armed", "details": result}
 
 # ----------------- Charges Breakdown -----------------
 

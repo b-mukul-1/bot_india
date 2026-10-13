@@ -113,6 +113,20 @@ export default function Dashboard() {
     }
   };
 
+  const handleRearm = async () => {
+    try {
+      const res = await fetch("/api/kill-switch/reset", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        fetchData();
+      } else {
+        alert("Failed to re-arm: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      alert("Error re-arming bot: " + e.message);
+    }
+  };
+
   const handleDownloadCsv = () => {
     window.location.href = "/api/trades/csv";
   };
@@ -199,8 +213,18 @@ export default function Dashboard() {
 
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           {status?.sentinel_halted ? (
-            <div className="badge-red" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <ShieldAlert size={14} /> SENTINEL HALTED
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div className="badge-red" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <ShieldAlert size={14} /> SENTINEL HALTED
+              </div>
+              <button
+                id="rearm-btn"
+                className="btn-primary"
+                style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", background: "linear-gradient(135deg, #10b981, #059669)", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}
+                onClick={handleRearm}
+              >
+                <CheckCircle2 size={14} /> RESTART / RE-ARM BOT
+              </button>
             </div>
           ) : (
             <div className="badge-green" style={{ display: "flex", alignItems: "center", gap: 6 }}>
