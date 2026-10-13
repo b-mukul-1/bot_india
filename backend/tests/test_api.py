@@ -28,7 +28,13 @@ def test_status_endpoint(client):
     assert "drawdown_pct" in data
 
 def test_csv_download_endpoint(client):
-    res = client.get("/api/trades.csv")
+    # Unauthenticated -> 401
+    res_unauth = client.get("/api/trades.csv")
+    assert res_unauth.status_code == 401
+
+    # Authenticated with shared secret -> 200
+    headers = {"X-Shared-Secret": settings.API_SHARED_SECRET}
+    res = client.get("/api/trades.csv", headers=headers)
     assert res.status_code == 200
     assert res.headers["content-type"] == "text/csv; charset=utf-8"
     assert "attachment; filename=apex_trades_" in res.headers["content-disposition"]

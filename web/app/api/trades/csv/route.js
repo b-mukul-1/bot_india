@@ -6,8 +6,15 @@ export async function GET(request) {
   const botUrl = process.env.BOT_API_URL || "http://127.0.0.1:8000";
   const { searchParams } = new URL(request.url);
 
+  const sharedSecret = process.env.API_SHARED_SECRET || "";
+
   try {
-    const res = await fetch(`${botUrl}/api/trades.csv?${searchParams.toString()}`, { cache: "no-store" });
+    const res = await fetch(`${botUrl}/api/trades.csv?${searchParams.toString()}`, {
+      cache: "no-store",
+      headers: {
+        "X-Shared-Secret": sharedSecret,
+      },
+    });
     if (!res.ok) {
       return new Response("Failed to fetch CSV from backend", { status: res.status });
     }

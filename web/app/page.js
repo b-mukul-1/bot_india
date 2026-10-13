@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   const [activeTab, setActiveTab] = useState("live");
   const [status, setStatus] = useState(null);
   const [trades, setTrades] = useState([]);
@@ -29,7 +34,42 @@ export default function Dashboard() {
   const [killLoading, setKillLoading] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState("");
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("apex_auth_token") : null;
+    if (token) {
+      setIsAuthenticated(true);
+    }
+    setAuthLoading(false);
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError("");
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sessionStorage.setItem("apex_auth_token", data.token);
+        setIsAuthenticated(true);
+      } else {
+        setLoginError(data.error || "Authentication failed");
+      }
+    } catch (err) {
+      setLoginError("Login connection error: " + err.message);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("apex_auth_token");
+    setIsAuthenticated(false);
+  };
+
   const fetchData = async () => {
+    if (!isAuthenticated) return;
     try {
       const [resStatus, resTrades, resCharges] = await Promise.all([
         fetch("/api/status").then((r) => r.json()),
@@ -46,10 +86,12 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 2500);
-    return () => clearInterval(interval);
-  }, []);
+    if (isAuthenticated) {
+      fetchData();
+      const interval = setInterval(fetchData, 2500);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
 
   const handleKillSwitch = async () => {
     if (killConfirmInput.trim().toUpperCase() !== "HALT") return;
@@ -84,6 +126,64 @@ export default function Dashboard() {
     }).format(val);
   };
 
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "var(--accent-cyan)", fontFamily: "var(--font-mono)" }}>INITIALIZING APEX TERMINAL...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
+        <div className="glass-panel" style={{ width: "100%", maxWidth: 420, padding: "2.5rem", borderRadius: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1.5rem" }}>
+            <Lock size={24} color="#00e5ff" />
+            <div>
+              <h2 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#ffffff" }}>APEX-IN TERMINAL</h2>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>Restricted Access</div>
+            </div>
+          </div>
+
+          <form onSubmit={handleLogin}>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={{ display: "block", fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: 6 }}>
+                Terminal Access Passphrase
+              </label>
+              <input
+                id="terminal-passphrase-input"
+                type="password"
+                placeholder="Enter passphrase"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  borderRadius: 8,
+                  background: "rgba(0, 0, 0, 0.4)",
+                  border: "1px solid var(--border-color)",
+                  color: "#ffffff",
+                  fontFamily: "var(--font-mono)",
+                }}
+              />
+            </div>
+
+            {loginError && (
+              <div style={{ color: "var(--accent-red)", fontSize: "0.8rem", marginBottom: "1rem" }}>
+                {loginError}
+              </div>
+            )}
+
+            <button id="login-submit-btn" type="submit" className="btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+              Authenticate Terminal
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
@@ -110,6 +210,10 @@ export default function Dashboard() {
 
           <button id="kill-switch-btn" className="btn-danger" onClick={() => setShowKillModal(true)}>
             <AlertTriangle size={16} /> KILL SWITCH
+          </button>
+
+          <button id="logout-btn" className="tab-btn" onClick={handleLogout} style={{ border: "1px solid var(--border-color)" }}>
+            LOGOUT
           </button>
         </div>
       </header>

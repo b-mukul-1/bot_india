@@ -25,12 +25,6 @@ EXCHANGE_DEFAULT_LOT_SIZES = {
     "FINNIFTY": 25,
 }
 
-INDEX_TOKENS_FALLBACK = {
-    "NIFTY 50": "256265",
-    "SENSEX": "265",
-    "NIFTY BANK": "260105",
-    "INDIA VIX": "264969",
-}
 
 @dataclass
 class InstrumentContract:

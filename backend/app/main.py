@@ -240,6 +240,7 @@ def download_trades_csv(
     to_date: Optional[str] = None,
     underlying: Optional[str] = None,
     strategy: Optional[str] = None,
+    auth: None = Depends(verify_auth),
 ):
     trades = db_manager.list_trades(
         from_date=from_date,

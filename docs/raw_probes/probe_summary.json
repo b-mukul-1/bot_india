@@ -1,102 +1,80 @@
 {
-  "timestamp_utc": "2026-10-13T17:46:52.746452+00:00",
-  "has_api_key": false,
+  "timestamp_utc": "2026-10-13T18:12:51.308620+00:00",
+  "has_api_key": true,
   "results": {
     "user_my": {
       "path": "/api/user/my",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "marketwatch_my": {
       "path": "/api/marketwatch/my",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "instruments_json": {
       "path": "/api/marketwatch/instruments",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "instruments_redirect": {
       "path": "/api/marketwatch/instruments?redirect=true",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 302,
+      "error": null,
+      "message": null
     },
     "ltp_nifty50": {
       "path": "/api/marketwatch/ltp/256265",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "ltp_sensex": {
       "path": "/api/marketwatch/ltp/265",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "positions_my": {
       "path": "/api/position/my",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "orders_my": {
       "path": "/api/order/my",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "holdings_my": {
       "path": "/api/holding/my",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "virtual_report": {
       "path": "/api/report/virtual/2026-10-01/2026-10-13",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     },
     "monthly_report": {
       "path": "/api/report/monthly/10/2026",
-      "status_code": 401,
-      "error": "AuthenticationException",
+      "status_code": 400,
+      "error": "ErrorMsgException",
       "message": [
-        "Missing api-key header"
+        "Data not available for this month, Please try with other month!"
       ]
     },
     "day_report": {
       "path": "/api/report/monthly/day/2026-10-13",
-      "status_code": 401,
-      "error": "AuthenticationException",
-      "message": [
-        "Missing api-key header"
-      ]
+      "status_code": 200,
+      "error": null,
+      "message": null
     }
   },
   "s3_csv": {

@@ -1,0 +1,59 @@
+{
+  "order_placed_response": {
+    "id": 785303,
+    "instrumentToken": "11421698",
+    "instrumentName": "NIFTY 13 OCT 22600 CE",
+    "executionType": "LIMIT",
+    "qty": 65,
+    "lotSize": null,
+    "type": "BUY",
+    "duration": "MIS",
+    "orderType": "BUY",
+    "price": 121.65,
+    "status": "PENDING",
+    "msg": null,
+    "createdTimestamp": "2026-10-13T23:44:50.648+05:30",
+    "modifiedTimestamp": "2026-10-13T23:44:50.648+05:30"
+  },
+  "open_orders_response": {
+    "id": 785303,
+    "instrumentToken": "11421698",
+    "instrumentName": "NIFTY 13 OCT 22600 CE",
+    "executionType": "LIMIT",
+    "qty": 65,
+    "lotSize": 65,
+    "type": "BUY",
+    "duration": "MIS",
+    "orderType": "BUY",
+    "price": 121.65,
+    "status": "PENDING",
+    "msg": null,
+    "createdTimestamp": "2026-10-13T23:44:51.000+05:30",
+    "modifiedTimestamp": "2026-10-13T23:44:51.000+05:30"
+  },
+  "cancel_order_response": [
+    {
+      "id": 785303,
+      "status": "SUCCESS",
+      "instrumentName": "NIFTY 13 OCT 22600 CE",
+      "msg": null
+    }
+  ],
+  "executed_orders_response": {
+    "id": 785302,
+    "instrumentToken": "11421698",
+    "instrumentName": "NIFTY 13 OCT 22600 CE",
+    "executionType": "LIMIT",
+    "qty": 65,
+    "lotSize": null,
+    "type": "BUY",
+    "duration": "MIS",
+    "orderType": "BUY",
+    "price": 10.0,
+    "status": "CANCELLED",
+    "msg": null,
+    "createdTimestamp": "2026-10-13T23:44:19.000+05:30",
+    "modifiedTimestamp": "2026-10-13T23:44:27.000+05:30"
+  },
+  "position_empty_response": []
+}

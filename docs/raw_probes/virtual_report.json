@@ -1,11 +1,11 @@
 {
-  "status_code": 401,
+  "status_code": 200,
   "content_type": "application/json",
   "headers": {
     "server": "openresty",
-    "date": "Tue, 13 Oct 2026 17:46:53 GMT",
+    "date": "Tue, 13 Oct 2026 18:12:52 GMT",
     "content-type": "application/json",
-    "content-length": "147",
+    "transfer-encoding": "chunked",
     "connection": "keep-alive",
     "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
     "x-content-type-options": "nosniff",
@@ -13,14 +13,8 @@
     "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
     "pragma": "no-cache",
     "expires": "0",
-    "x-frame-options": "DENY"
+    "x-frame-options": "DENY",
+    "x-served-by": "api.megabull.in"
   },
-  "body": {
-    "path": "/api/report/virtual/2026-10-01/2026-10-13",
-    "error": "AuthenticationException",
-    "message": [
-      "Missing api-key header"
-    ],
-    "status": "UNAUTHORIZED"
-  }
+  "body": []
 }

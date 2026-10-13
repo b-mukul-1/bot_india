@@ -1,26 +1,22 @@
 {
-  "status_code": 401,
-  "content_type": "application/json",
+  "status_code": 302,
+  "content_type": "",
   "headers": {
     "server": "openresty",
-    "date": "Tue, 13 Oct 2026 17:46:53 GMT",
-    "content-type": "application/json",
-    "content-length": "134",
+    "date": "Tue, 13 Oct 2026 18:12:51 GMT",
+    "content-length": "0",
     "connection": "keep-alive",
     "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+    "location": "https://megabull-open.s3.us-east-1.amazonaws.com/Instrument-default.csv",
     "x-content-type-options": "nosniff",
     "x-xss-protection": "0",
     "cache-control": "no-cache, no-store, max-age=0, must-revalidate",
     "pragma": "no-cache",
     "expires": "0",
-    "x-frame-options": "DENY"
+    "x-frame-options": "DENY",
+    "x-served-by": "api.megabull.in"
   },
   "body": {
-    "path": "/api/marketwatch/instruments",
-    "error": "AuthenticationException",
-    "message": [
-      "Missing api-key header"
-    ],
-    "status": "UNAUTHORIZED"
+    "raw_text": ""
   }
 }
