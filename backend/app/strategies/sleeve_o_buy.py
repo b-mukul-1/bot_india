@@ -9,7 +9,7 @@ from backend.app.instruments import InstrumentContract
 from backend.app.strategies.sleeve_f import StrategySignal
 
 class SleeveOBuy:
-    def __init__(self, max_premium_risk_inr: float = 12000.0):
+    def __init__(self, max_premium_risk_inr: float = 20000.0):
         self.strategy_id = "SLEEVE_O_BUY_CONVEX"
         self.max_premium_risk_inr = max_premium_risk_inr
 
@@ -34,7 +34,7 @@ class SleeveOBuy:
         lot_size = contract.lot_size
         premium_outlay = premium * lot_size
 
-        # Cap size to risk budget
+        # Cap size to risk budget (max outlay Rs 20,000 for 1 lot ATM)
         if premium_outlay > self.max_premium_risk_inr:
             return None
 

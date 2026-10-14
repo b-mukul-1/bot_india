@@ -19,6 +19,7 @@ from backend.app.charges.engine import ChargesEngine
 from backend.app.risk.sentinel import RiskSentinel
 from backend.app.risk.kill_switch import KillSwitch
 from backend.app.store.db import DatabaseManager
+from backend.app.store.models import TradeRecord
 from backend.app.export.csv_export import export_trades_to_csv_bytes, export_trade_events_to_csv_bytes
 from backend.app.execution.order_manager import OrderManager
 
@@ -134,27 +135,42 @@ def get_status():
     now_utc = datetime.now(timezone.utc)
     trades = db_manager.list_trades()
 
-    # Aggregate today's metrics
+    # Aggregate today's metrics (only valid trades)
     today_ist = calendar.to_ist(now_utc).date().isoformat()
-    today_trades = [t for t in trades if t.decision_time_ist and t.decision_time_ist.startswith(today_ist)]
+    today_trades = [
+        t for t in trades 
+        if t.decision_time_ist and t.decision_time_ist.startswith(today_ist) 
+        and (t.exit_price is not None or t.trade_id in order_manager.active_trades)
+    ]
 
-    gross_pnl_today = sum(float(t.gross_pnl or 0) for t in today_trades)
-    charges_today = sum(float(t.total_charges or 0) for t in today_trades)
-    net_pnl_today = gross_pnl_today - charges_today
+    gross_pnl_today = round(sum(float(t.gross_pnl or 0) for t in today_trades if t.exit_price is not None), 2)
+    charges_today = round(sum(float(t.total_charges or 0) for t in today_trades if t.exit_price is not None), 2)
+    net_pnl_today = round(gross_pnl_today - charges_today, 2)
 
-    peak = max(sentinel.peak_equity, settings.INITIAL_CAPITAL)
-    drawdown_pct = round((peak - sentinel.current_equity) / peak * 100, 2) if peak > 0 else 0.0
+    total_gross = sum(float(t.gross_pnl or 0) for t in trades if t.exit_price is not None)
+    total_charges = sum(float(t.total_charges or 0) for t in trades if t.exit_price is not None)
+    total_net = total_gross - total_charges
+
+    current_equity = round(settings.INITIAL_CAPITAL + total_net, 2)
+    peak = max(sentinel.peak_equity, settings.INITIAL_CAPITAL, current_equity)
+    drawdown_pct = round((peak - current_equity) / peak * 100, 2) if peak > 0 else 0.0
+
+    sentinel.current_equity = current_equity
+    sentinel.peak_equity = peak
+    sentinel.day_pnl = net_pnl_today
+
+    valid_total_trades = [t for t in trades if t.exit_price is not None or t.trade_id in order_manager.active_trades]
 
     return {
         "initial_capital": settings.INITIAL_CAPITAL,
-        "current_equity": sentinel.current_equity,
+        "current_equity": current_equity,
         "peak_equity": peak,
         "drawdown_pct": drawdown_pct,
         "gross_pnl_today": gross_pnl_today,
         "charges_today": charges_today,
         "net_pnl_today": net_pnl_today,
         "trades_count_today": len(today_trades),
-        "total_trades_count": len(trades),
+        "total_trades_count": len(valid_total_trades),
         "sentinel_halted": sentinel.is_halted,
         "halt_reason": sentinel.halt_reason,
         "kill_switch_active": sentinel.kill_switch_active,
@@ -212,6 +228,11 @@ def list_trades(
         underlying=underlying,
         strategy=strategy,
     )
+    # Only return completed trades or currently active positions
+    valid_records = [
+        t for t in records 
+        if t.exit_price is not None or t.trade_id in order_manager.active_trades
+    ]
     return [
         {
             "trade_id": t.trade_id,
@@ -232,7 +253,7 @@ def list_trades(
             "exit_reason": t.exit_reason,
             "data_quality_flags": t.data_quality_flags,
         }
-        for t in records
+        for t in valid_records
     ]
 
 @app.get("/api/trades/{trade_id}")
@@ -327,6 +348,17 @@ def reset_kill_switch_endpoint(auth: None = Depends(verify_auth)):
     if worker_instance and hasattr(worker_instance, "sentinel"):
         worker_instance.sentinel.reset_halt()
     return {"status": "SUCCESS", "message": "Kill switch disarmed and bot re-armed", "details": result}
+
+@app.post("/api/trades/cleanup-ghosts")
+def cleanup_ghost_trades(auth: None = Depends(verify_auth)):
+    with db_manager.session() as s:
+        active_ids = list(order_manager.active_trades.keys())
+        ghosts = s.query(TradeRecord).filter(TradeRecord.exit_price == None).all()
+        to_delete = [g for g in ghosts if g.trade_id not in active_ids]
+        count = len(to_delete)
+        for g in to_delete:
+            s.delete(g)
+        return {"status": "SUCCESS", "deleted_ghost_trades": count}
 
 # ----------------- Charges Breakdown -----------------
 

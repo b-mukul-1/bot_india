@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 EXCHANGE_DEFAULT_LOT_SIZES = {
     "NIFTY": 65,
     "SENSEX": 10,
-    "BANKNIFTY": 15,
-    "NIFTY BANK": 15,
+    "BANKNIFTY": 30,
+    "NIFTY BANK": 30,
     "FINNIFTY": 25,
 }
 

@@ -99,9 +99,6 @@ class OrderManager:
             conservative_fill_price_modeled=Decimal(str(signal.price + 0.50)),
         )
 
-        # Write initial snapshot to DB before sending order
-        self.db.save_trade(trade)
-
         # 3. Send order to MegaBull simulator
         try:
             resp = self.client.place_order(
@@ -156,13 +153,13 @@ class OrderManager:
         exit_time_ist = self.calendar.to_ist(now_utc).isoformat()
         exit_side = "SELL" if trade.side == "BUY" else "BUY"
 
-        # Place exit order on MegaBull simulator
+        # Place exit order on MegaBull simulator (use MKT for guaranteed immediate fill)
         resp = self.client.place_order(
             instrument_token=trade.instrument_token,
             qty=trade.quantity,
             side=exit_side,
-            order_type="LIMIT",
-            price=exit_price,
+            order_type="MKT",
+            price=None,
             duration="MIS",
         )
 

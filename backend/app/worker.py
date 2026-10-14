@@ -180,21 +180,35 @@ class TradingWorker:
         for trade_id in list(self.order_manager.active_trades.keys()):
             trade = self.order_manager.active_trades[trade_id]
             q = self.provider.get_quote(trade.instrument_token, trade.tradingsymbol)
-            if not q:
+            current_ltp = q.ltp if (q and q.ltp > 0) else None
+
+            # Fallback for Futures: if futures LTP is stale, cross-check against underlying spot price
+            if not current_ltp and trade.instrument_type == "FUT":
+                spot_c = self.resolver.get_spot(trade.underlying)
+                if spot_c:
+                    sq = self.provider.get_quote(spot_c.instrument_token, spot_c.trading_symbol)
+                    if sq and sq.ltp > 0:
+                        current_ltp = sq.ltp
+
+            if not current_ltp:
                 continue
 
             # Long Position Stop / Target Hit
             if trade.side == "BUY":
-                if trade.stop_price and q.ltp <= float(trade.stop_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP_LOSS")
-                elif trade.target_price and q.ltp >= float(trade.target_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET_HIT")
+                if trade.stop_price and current_ltp <= float(trade.stop_price):
+                    logger.warning(f"[STOP LOSS TRIGGERED] {trade.tradingsymbol} current {current_ltp} <= stop {trade.stop_price}")
+                    self.order_manager.close_trade(trade_id, current_ltp, exit_reason="STOP_LOSS")
+                elif trade.target_price and current_ltp >= float(trade.target_price):
+                    logger.info(f"[TARGET HIT TRIGGERED] {trade.tradingsymbol} current {current_ltp} >= target {trade.target_price}")
+                    self.order_manager.close_trade(trade_id, current_ltp, exit_reason="TARGET_HIT")
             # Short Position Stop / Target Hit
             elif trade.side == "SELL":
-                if trade.stop_price and q.ltp >= float(trade.stop_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="STOP_LOSS")
-                elif trade.target_price and q.ltp <= float(trade.target_price):
-                    self.order_manager.close_trade(trade_id, q.ltp, exit_reason="TARGET_HIT")
+                if trade.stop_price and current_ltp >= float(trade.stop_price):
+                    logger.warning(f"[STOP LOSS TRIGGERED] {trade.tradingsymbol} current {current_ltp} >= stop {trade.stop_price}")
+                    self.order_manager.close_trade(trade_id, current_ltp, exit_reason="STOP_LOSS")
+                elif trade.target_price and current_ltp <= float(trade.target_price):
+                    logger.info(f"[TARGET HIT TRIGGERED] {trade.tradingsymbol} current {current_ltp} <= target {trade.target_price}")
+                    self.order_manager.close_trade(trade_id, current_ltp, exit_reason="TARGET_HIT")
 
         # 2. Concurrency check: max 3 open positions simultaneously
         if len(self.order_manager.active_trades) >= 3 or self.sentinel.is_halted:
@@ -246,12 +260,14 @@ class TradingWorker:
             orb_hi = self.orb_high.get(underlying, spot_price)
             orb_lo = self.orb_low.get(underlying, spot_price)
 
-            # Check if an existing trade already targets this underlying
-            underlying_busy = any(
-                t.underlying == underlying for t in self.order_manager.active_trades.values()
+            # Check: allow up to 2 positions in the same underlying (e.g. 1 FUT + 1 OPT)
+            same_underlying_count = sum(
+                1 for t in self.order_manager.active_trades.values() if t.underlying == underlying
             )
-            if underlying_busy:
+            if same_underlying_count >= 2:
                 continue
+
+            active_tokens = set(t.instrument_token for t in self.order_manager.active_trades.values())
 
             candidate_signal = None
 
@@ -307,7 +323,7 @@ class TradingWorker:
                         )
 
             # --- C. Cost-Aware Gate & Execution ---
-            if candidate_signal:
+            if candidate_signal and candidate_signal.instrument_token not in active_tokens:
                 if self.combiner.cost_aware_gate(candidate_signal):
                     try:
                         trade_record = self.order_manager.execute_signal(candidate_signal)
