@@ -115,6 +115,8 @@ def ping():
         "status": "pong",
         "time": datetime.now(timezone.utc).isoformat(),
         "worker_running": worker_instance.running if worker_instance else False,
+        "key_suffix": settings.MEGABULL_API_KEY[-8:] if settings.MEGABULL_API_KEY else "none",
+        "version": "1.0.3",
     }
 
 @app.get("/health")
