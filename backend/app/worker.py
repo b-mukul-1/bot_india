@@ -150,7 +150,7 @@ class TradingWorker:
 
         # 5. Normal Trading Pipeline (09:20 - 14:45)
         if session_state.get("can_enter") and not self.sentinel.is_halted:
-            self._execute_trading_pipeline()
+            self._execute_trading_pipeline(now_utc)
 
         self.emit_heartbeat(phase)
         time.sleep(2.0) # Main loop polling interval (respects <= 2 req/sec)
@@ -175,7 +175,8 @@ class TradingWorker:
         recent = diffs[-period:]
         return round(sum(recent) / len(recent), 2) if recent else 20.0
 
-    def _execute_trading_pipeline(self):
+    def _execute_trading_pipeline(self, now_utc: Optional[datetime] = None):
+        now_utc = now_utc or datetime.now(timezone.utc)
         # 1. Check Active Trades for Stop Loss / Target Hit
         for trade_id in list(self.order_manager.active_trades.keys()):
             trade = self.order_manager.active_trades[trade_id]
