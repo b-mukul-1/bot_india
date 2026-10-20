@@ -152,6 +152,15 @@ def get_status():
     total_net = total_gross - total_charges
 
     current_equity = round(settings.INITIAL_CAPITAL + total_net, 2)
+    # Ground-truth sync with MegaBull virtual balance
+    try:
+        mb_profile = megabull_client.get_profile()
+        mb_balance = mb_profile.get("virtualMoney")
+        if mb_balance is not None and float(mb_balance) > 0:
+            current_equity = round(float(mb_balance), 2)
+    except Exception:
+        pass
+
     peak = max(sentinel.peak_equity, settings.INITIAL_CAPITAL, current_equity)
     drawdown_pct = round((peak - current_equity) / peak * 100, 2) if peak > 0 else 0.0
 
