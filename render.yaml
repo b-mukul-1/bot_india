@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: apex-in-backend
+    name: bot-india-backend
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
@@ -23,7 +23,7 @@ services:
           name: apex-in-db
           property: connectionString
       - key: RENDER_EXTERNAL_URL
-        value: "https://apex-in-backend.onrender.com"
+        value: "https://bot-india-backend.onrender.com"
 
 databases:
   - name: apex-in-db

@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
         logger.info("[LIFESPAN] Autonomous TradingWorker started in background daemon thread")
 
     # 2. Self-ping keepalive to prevent Render free instance spin-down
-    ping_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL") or "https://apex-in-backend.onrender.com"
+    ping_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL") or "https://bot-india-backend.onrender.com"
     if ping_url:
         ping_thread = threading.Thread(target=_self_ping_loop, args=(ping_url,), daemon=True, name="KeepAliveThread")
         ping_thread.start()
