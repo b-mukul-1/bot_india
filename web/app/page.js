@@ -348,15 +348,27 @@ export default function Dashboard() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
                 <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
                   <div style={{ fontWeight: 600, color: "var(--accent-cyan)" }}>Sleeve F (Futures Trend / ORB)</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Near-month Nifty & Sensex futures. 15-min ORB + 20/50 EMA trend + ADX filter.</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Near-month Nifty & BankNifty futures. 15-min ORB + 20/50 EMA trend + ADX filter.</div>
                 </div>
                 <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
                   <div style={{ fontWeight: 600, color: "var(--accent-green)" }}>Sleeve O-Buy (Convex Momentum)</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>ATM / 1-OTM Call/Put buying. Risk strictly capped to entry premium. VIX &lt; 22 filter.</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>ATM / 1-OTM Call/Put buying on Donchian breakout. Risk strictly capped to entry premium. VIX &lt; 22 filter.</div>
                 </div>
                 <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
-                  <div style={{ fontWeight: 600, color: "var(--accent-purple)" }}>Sleeve O-Spread (Defined Risk)</div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Vertical Credit Spreads. Long hedge leg is placed FIRST. Zero naked options.</div>
+                  <div style={{ fontWeight: 600, color: "#38bdf8" }}>Sleeve VWAP-MOM (Institutional VWAP)</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Intraday Volume-Weighted Average Price + EMA 9/21 cross. Buys high-velocity options aligned with big desks.</div>
+                </div>
+                <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                  <div style={{ fontWeight: 600, color: "#f59e0b" }}>Sleeve GAMMA-EXP (Expiry Afternoon Surge)</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Active 13:15-15:00 IST on weekly expiry days. Capitalizes on trapped option writer panic covering (1:3+ asymmetric payoff).</div>
+                </div>
+                <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                  <div style={{ fontWeight: 600, color: "var(--accent-purple)" }}>Dynamic Ratchet Trailing Stops</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>+25% moves stop to Breakeven (Risk-Free) &rarr; +50% locks +25% profit &rarr; +75% locks +50% profit &rarr; +100% target exit.</div>
+                </div>
+                <div style={{ background: "rgba(255, 255, 255, 0.02)", padding: "1rem", borderRadius: 8, border: "1px solid var(--border-color)" }}>
+                  <div style={{ fontWeight: 600, color: "#ec4899" }}>Mid-Day Theta Chop Shield</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: 4 }}>Freezes fresh option buying between 11:45 & 13:15 IST (lunchtime chop). Protects capital from sideways time decay.</div>
                 </div>
               </div>
             </div>
