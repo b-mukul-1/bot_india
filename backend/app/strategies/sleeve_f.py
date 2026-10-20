@@ -46,20 +46,22 @@ class SleeveF:
         ema_50: float,
         adx: float,
         atr: float,
+        spot_price: Optional[float] = None,
     ) -> Optional[StrategySignal]:
         """
         Evaluates ORB + Trend conditions:
-        - Long: current_price > orb_high AND current_price > ema_20 > ema_50 AND adx > 20
-        - Short: current_price < orb_low AND current_price < ema_20 < ema_50 AND adx > 20
+        - Long: eval_price > orb_high AND eval_price > ema_20 > ema_50 AND adx > 20
+        - Short: eval_price < orb_low AND eval_price < ema_20 < ema_50 AND adx > 20
         """
         if adx < 20.0 or atr <= 0.0:
             return None
 
+        eval_price = spot_price if spot_price is not None else current_price
         lot_size = contract.lot_size
         stop_dist = max(20.0, 1.5 * atr)  # minimum stop distance in index points
 
         # 1. Long Breakout
-        if current_price > orb_high and current_price > ema_20 > ema_50:
+        if eval_price > orb_high and eval_price > ema_20 > ema_50:
             stop_price = round(current_price - stop_dist, 2)
             target_price = round(current_price + 2.5 * stop_dist, 2)
             risk_inr = stop_dist * lot_size
@@ -83,7 +85,7 @@ class SleeveF:
             )
 
         # 2. Short Breakdown
-        if current_price < orb_low and current_price < ema_20 < ema_50:
+        if eval_price < orb_low and eval_price < ema_20 < ema_50:
             stop_price = round(current_price + stop_dist, 2)
             target_price = round(current_price - 2.5 * stop_dist, 2)
             risk_inr = stop_dist * lot_size

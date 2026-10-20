@@ -25,6 +25,22 @@ EXCHANGE_DEFAULT_LOT_SIZES = {
     "FINNIFTY": 25,
 }
 
+MONTHS_MAP = {
+    "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
+    "JUL": 7, "AUG": 8, "SEP": 9, "OCT": 10, "NOV": 11, "DEC": 12,
+}
+
+def parse_contract_expiry(expiry_str: Optional[str], default_year: int = 2026) -> Optional[date]:
+    if not expiry_str:
+        return None
+    parts = expiry_str.strip().split()
+    if len(parts) == 2 and parts[1].upper() in MONTHS_MAP:
+        try:
+            return date(default_year, MONTHS_MAP[parts[1].upper()], int(parts[0]))
+        except Exception:
+            return None
+    return None
+
 
 @dataclass
 class InstrumentContract:
@@ -195,9 +211,18 @@ class InstrumentResolver:
             return self.indices.get("NIFTY")
         return self.indices.get(u)
 
-    def get_futures(self, underlying: str) -> List[InstrumentContract]:
+    def get_futures(self, underlying: str, ref_date: Optional[date] = None) -> List[InstrumentContract]:
         u = underlying.upper()
-        return self.futures_by_underlying.get(u, [])
+        futs = self.futures_by_underlying.get(u, [])
+        if not futs:
+            return []
+        current_d = ref_date or datetime.now(timezone.utc).date()
+        # Filter unexpired and sort by nearest expiry
+        valid = [f for f in futs if parse_contract_expiry(f.expiry_str) and parse_contract_expiry(f.expiry_str) >= current_d]
+        if valid:
+            valid.sort(key=lambda f: parse_contract_expiry(f.expiry_str))
+            return valid
+        return futs
 
     def get_options(
         self,
@@ -213,6 +238,23 @@ class InstrumentResolver:
             opts = [o for o in opts if o.instrument_type == opt_type.upper()]
         return opts
 
+    def get_nearest_active_expiry(self, underlying: str, ref_date: Optional[date] = None) -> Optional[str]:
+        current_d = ref_date or datetime.now(timezone.utc).date()
+        opts = self.get_options(underlying)
+        valid = []
+        for o in opts:
+            d = parse_contract_expiry(o.expiry_str)
+            if d and d >= current_d:
+                valid.append((d, o.expiry_str))
+        if not valid:
+            all_exp = [(parse_contract_expiry(o.expiry_str) or date(2099, 1, 1), o.expiry_str) for o in opts if o.expiry_str]
+            if all_exp:
+                all_exp.sort(key=lambda x: x[0], reverse=True)
+                return all_exp[0][1]
+            return None
+        valid.sort(key=lambda x: x[0])
+        return valid[0][1]
+
     def get_atm_options(
         self,
         underlying: str,
@@ -221,9 +263,11 @@ class InstrumentResolver:
         expiry: Optional[str] = None
     ) -> Dict[str, List[InstrumentContract]]:
         """
-        Returns ATM +/- n_strikes for CE and PE.
+        Returns ATM +/- n_strikes for CE and PE for the active unexpired contract.
+        Sorts options so the closest ATM contract is first.
         """
-        all_opts = self.get_options(underlying, expiry=expiry)
+        target_expiry = expiry or self.get_nearest_active_expiry(underlying)
+        all_opts = self.get_options(underlying, expiry=target_expiry)
         if not all_opts:
             return {"CE": [], "PE": []}
 
@@ -241,8 +285,9 @@ class InstrumentResolver:
         ce_opts = [o for o in all_opts if o.instrument_type == "CE" and o.strike in target_strikes]
         pe_opts = [o for o in all_opts if o.instrument_type == "PE" and o.strike in target_strikes]
 
-        ce_opts.sort(key=lambda o: o.strike or 0)
-        pe_opts.sort(key=lambda o: o.strike or 0)
+        # Closest ATM first
+        ce_opts.sort(key=lambda o: abs((o.strike or 0.0) - spot_price))
+        pe_opts.sort(key=lambda o: abs((o.strike or 0.0) - spot_price))
 
         return {"CE": ce_opts, "PE": pe_opts}
 

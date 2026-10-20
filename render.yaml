@@ -22,6 +22,8 @@ services:
         fromDatabase:
           name: apex-in-db
           property: connectionString
+      - key: RENDER_EXTERNAL_URL
+        value: "https://apex-in-backend.onrender.com"
 
 databases:
   - name: apex-in-db

@@ -22,8 +22,8 @@ class RiskBreachException(Exception):
 @dataclass
 class RiskConfig:
     initial_capital: float = 500000.0  # Rs 5 Lakhs virtual balance
-    max_trade_risk_pct: float = 0.02   # Max 2.0% per trade (Rs 10,000) - upgraded for high conviction
-    max_total_risk_pct: float = 0.05   # Max 5.0% total open risk (Rs 25,000)
+    max_trade_risk_pct: float = 0.025  # Max 2.5% per trade (Rs 12,500 on 5L) - buffers index option lot sizes
+    max_total_risk_pct: float = 0.06   # Max 6.0% total open risk (Rs 30,000)
     daily_loss_limit_pct: float = 0.03 # 3.0% daily loss limit (Rs 15,000 circuit breaker)
     weekly_loss_limit_pct: float = 0.08 # 8.0% weekly loss limit (Rs 40,000)
     max_orders_per_day: int = 60       # Up to 60 orders/day across Nifty & BankNifty

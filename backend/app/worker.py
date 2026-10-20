@@ -12,7 +12,7 @@ import sys
 import time
 import signal
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time as dt_time
 from typing import Dict, Any, Optional, List
 
 from backend.app.config import get_settings
@@ -245,9 +245,14 @@ class TradingWorker:
                 self.session_low[underlying] = spot_price
 
             # Establish Opening Range Breakout (ORB) baseline
-            if len(hist) <= 15:
+            ist_time = self.calendar.to_ist(now_utc).time()
+            if ist_time <= dt_time(9, 30):
                 self.orb_high[underlying] = max(self.orb_high.get(underlying, spot_price), spot_price)
                 self.orb_low[underlying] = min(self.orb_low.get(underlying, spot_price), spot_price)
+            elif self.orb_high.get(underlying, 0.0) == 0.0 or self.orb_low.get(underlying, 999999.0) == 999999.0:
+                if len(hist) <= 15:
+                    self.orb_high[underlying] = max(self.orb_high.get(underlying, spot_price), spot_price)
+                    self.orb_low[underlying] = min(self.orb_low.get(underlying, spot_price), spot_price)
 
             if len(hist) < 5:
                 continue
@@ -255,8 +260,9 @@ class TradingWorker:
             ema_20 = self._calc_ema(hist, 20)
             ema_50 = self._calc_ema(hist, 50)
             atr = self._calc_atr(hist, 14)
-            donchian_high = max(hist[-15:])
-            donchian_low = min(hist[-15:])
+            prev_window = hist[-16:-1] if len(hist) > 15 else hist[:-1]
+            donchian_high = max(prev_window) if prev_window else spot_price
+            donchian_low = min(prev_window) if prev_window else spot_price
             orb_hi = self.orb_high.get(underlying, spot_price)
             orb_lo = self.orb_low.get(underlying, spot_price)
 
@@ -274,8 +280,11 @@ class TradingWorker:
             # --- A. SLEEVE O-BUY (Convex ATM Options Momentum) ---
             atm_options = self.resolver.get_atm_options(underlying, spot_price, n_strikes=2)
 
+            is_bullish = (spot_price >= donchian_high) or (len(hist) >= 10 and spot_price > ema_20 > ema_50)
+            is_bearish = (spot_price <= donchian_low) or (len(hist) >= 10 and spot_price < ema_20 < ema_50)
+
             # Bullish Call Momentum Breakout
-            if spot_price >= donchian_high and atm_options.get("CE"):
+            if is_bullish and atm_options.get("CE"):
                 ce_contract = atm_options["CE"][0]
                 q_ce = self.provider.get_quote(ce_contract.instrument_token, ce_contract.trading_symbol)
                 if q_ce and q_ce.ltp >= 25.0:
@@ -284,12 +293,12 @@ class TradingWorker:
                         premium=q_ce.ltp,
                         spot_price=spot_price,
                         india_vix=14.5,
-                        spot_donchian_high=donchian_high - 1.0,
-                        spot_donchian_low=donchian_low,
+                        spot_donchian_high=spot_price - 1.0,
+                        spot_donchian_low=spot_price - 100.0,
                     )
 
             # Bearish Put Momentum Breakdown
-            elif spot_price <= donchian_low and atm_options.get("PE"):
+            elif is_bearish and atm_options.get("PE"):
                 pe_contract = atm_options["PE"][0]
                 q_pe = self.provider.get_quote(pe_contract.instrument_token, pe_contract.trading_symbol)
                 if q_pe and q_pe.ltp >= 25.0:
@@ -298,8 +307,8 @@ class TradingWorker:
                         premium=q_pe.ltp,
                         spot_price=spot_price,
                         india_vix=14.5,
-                        spot_donchian_high=donchian_high,
-                        spot_donchian_low=donchian_low + 1.0,
+                        spot_donchian_high=spot_price + 100.0,
+                        spot_donchian_low=spot_price + 1.0,
                     )
 
             # --- B. SLEEVE F (Futures Trend / ORB) if no option signal ---
@@ -320,6 +329,7 @@ class TradingWorker:
                             ema_50=ema_50,
                             adx=24.0,
                             atr=atr,
+                            spot_price=spot_price,
                         )
 
             # --- C. Cost-Aware Gate & Execution ---

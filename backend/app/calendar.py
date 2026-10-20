@@ -4,6 +4,7 @@ Handles Indian market sessions (09:15 - 15:30 IST), pre-open, square-off,
 exchange holidays, weekly expiry shifts (Nifty Tuesday, Sensex Thursday), and timezone conversions.
 """
 
+import os
 from datetime import datetime, date, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Set, Optional, Dict, Any
@@ -25,7 +26,6 @@ NSE_HOLIDAYS_2026: Set[date] = {
     date(2026, 8, 15),  # Independence Day
     date(2026, 9, 4),   # Milad-un-Nabi
     date(2026, 10, 2),  # Mahatma Gandhi Jayanti
-    date(2026, 10, 20), # Dussehra
     date(2026, 11, 10), # Diwali Balipratipada
     date(2026, 11, 24), # Gurunanak Jayanti
     date(2026, 12, 25), # Christmas
@@ -67,6 +67,8 @@ class MarketCalendar:
 
     def is_holiday(self, d: date) -> bool:
         """Returns True if the date is a weekend or listed exchange holiday."""
+        if os.environ.get("BYPASS_CALENDAR_HOLIDAY", "false").lower() in ("true", "1"):
+            return False
         if d.weekday() >= 5:  # 5=Saturday, 6=Sunday
             return True
         return d in self.holidays

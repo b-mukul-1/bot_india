@@ -80,7 +80,7 @@ def test_expiry_date_calculation_and_holiday_shift(calendar):
     assert exp_sensex == date(2026, 10, 15)
 
     # Holiday shift test:
-    # 2026-10-20 is Dussehra holiday (Tuesday).
-    # Nifty expiry on that week should shift to Monday 2026-10-19!
-    exp_nifty_holiday = calendar.get_expiry_date("NIFTY", ref_date=date(2026, 10, 19))
+    # If Tuesday is an exchange holiday, Nifty weekly expiry shifts to Monday!
+    custom_cal = MarketCalendar(holidays={date(2026, 10, 20)})
+    exp_nifty_holiday = custom_cal.get_expiry_date("NIFTY", ref_date=date(2026, 10, 19))
     assert exp_nifty_holiday == date(2026, 10, 19)

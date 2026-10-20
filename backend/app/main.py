@@ -38,9 +38,9 @@ worker_instance = None
 worker_thread = None
 
 def _self_ping_loop(target_url: str):
-    logger.info(f"[KEEP-ALIVE] Started self-ping keepalive targeting {target_url} every 10 minutes")
+    logger.info(f"[KEEP-ALIVE] Started self-ping keepalive targeting {target_url} every 5 minutes")
     while True:
-        time.sleep(600)  # 10 minutes
+        time.sleep(300)  # 5 minutes
         try:
             with httpx.Client(timeout=10.0) as client:
                 client.get(f"{target_url.rstrip('/')}/ping")
@@ -58,8 +58,8 @@ async def lifespan(app: FastAPI):
         worker_thread.start()
         logger.info("[LIFESPAN] Autonomous TradingWorker started in background daemon thread")
 
-    # 2. Self-ping keepalive if running on free Render instance
-    ping_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL")
+    # 2. Self-ping keepalive to prevent Render free instance spin-down
+    ping_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL") or "https://apex-in-backend.onrender.com"
     if ping_url:
         ping_thread = threading.Thread(target=_self_ping_loop, args=(ping_url,), daemon=True, name="KeepAliveThread")
         ping_thread.start()
