@@ -111,3 +111,10 @@ class DatabaseManager:
             else:
                 row = SystemStateRecord(key=key, value=value)
                 s.add(row)
+
+    def clear_all_trades(self) -> int:
+        """Deletes all trade records and trade event records for a clean fresh start."""
+        with self.session() as s:
+            s.query(TradeEventRecord).delete()
+            count = s.query(TradeRecord).delete()
+            return count

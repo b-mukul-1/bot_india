@@ -127,6 +127,27 @@ export default function Dashboard() {
     }
   };
 
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleResetAllTrades = async () => {
+    if (!confirm("Are you sure you want to purge all old trades and reset to a clean ₹5,00,000 slate?")) return;
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/trades/reset-all", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        alert("All past trades successfully cleared! Fresh start ready.");
+        fetchData();
+      } else {
+        alert("Reset failed: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      alert("Error: " + e.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const handleDownloadCsv = () => {
     window.location.href = "/api/trades/csv";
   };
@@ -514,6 +535,24 @@ export default function Dashboard() {
                   <tr><td>Database Engine</td><td>PostgreSQL (Railway Plugin) / SQLite Local</td></tr>
                 </tbody>
               </table>
+            </div>
+
+            <div className="glass-panel" style={{ padding: "1.5rem", marginTop: "1.5rem", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--accent-red)", marginBottom: "0.5rem" }}>
+                Reset Historical Data
+              </h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                Purge all past trades from previous session/account and reset metrics to a clean ₹5,00,000 balance.
+              </p>
+              <button
+                id="reset-trades-btn"
+                className="btn-danger"
+                style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+                onClick={handleResetAllTrades}
+                disabled={resetLoading}
+              >
+                {resetLoading ? "Purging..." : "Purge All Past Trades (Fresh Start)"}
+              </button>
             </div>
           </div>
         )}

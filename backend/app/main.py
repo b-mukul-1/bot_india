@@ -371,6 +371,19 @@ def cleanup_ghost_trades(auth: None = Depends(verify_auth)):
             s.delete(g)
         return {"status": "SUCCESS", "deleted_ghost_trades": count}
 
+@app.post("/api/trades/reset-all")
+def reset_all_trades_endpoint(auth: None = Depends(verify_auth)):
+    count = db_manager.clear_all_trades()
+    order_manager.active_trades.clear()
+    sentinel.day_pnl = 0.0
+    sentinel.week_pnl = 0.0
+    sentinel.peak_equity = settings.INITIAL_CAPITAL
+    sentinel.current_equity = settings.INITIAL_CAPITAL
+    sentinel.orders_today_count = 0
+    if worker_instance and hasattr(worker_instance, "order_manager"):
+        worker_instance.order_manager.active_trades.clear()
+    return {"status": "SUCCESS", "deleted_trades_count": count, "message": "All historical trades purged for clean fresh start"}
+
 # ----------------- Charges Breakdown -----------------
 
 @app.get("/api/charges/summary")
